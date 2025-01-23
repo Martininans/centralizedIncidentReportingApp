@@ -1,9 +1,12 @@
 package com.semicolon.africa.Centralized_Incident_Reporting_App.controllers;
 
 import com.semicolon.africa.Centralized_Incident_Reporting_App.dto.ReportDto;
+import com.semicolon.africa.Centralized_Incident_Reporting_App.dto.ReportResponseDto;
 import com.semicolon.africa.Centralized_Incident_Reporting_App.models.Report;
 import com.semicolon.africa.Centralized_Incident_Reporting_App.services.ReportService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,35 +17,27 @@ import java.util.List;
 public class ReportController {
     private final ReportService reportService;
 
+    @Autowired
     public ReportController(ReportService reportService) {
         this.reportService = reportService;
     }
 
     @PostMapping
-    public ResponseEntity<ReportDto> createReport(@RequestBody ReportDto reportDto) {
-        ReportDto createdReport = reportService.createReport(reportDto);
-        return ResponseEntity.ok(createdReport);
+    public ResponseEntity<ReportResponseDto> createReport(@RequestBody @Valid ReportDto reportDto) {
+        ReportResponseDto createdReport = reportService.createReport(reportDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdReport);
     }
 
-    // You can add more methods for fetching reports, e.g., by incident ID or user ID
     @GetMapping("/{id}")
-    public ResponseEntity<ReportDto> getReportById(@PathVariable Long id) {
-        try {
-            ReportDto reportDto = reportService.getReportById(id);
-            return ResponseEntity.ok(reportDto);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<ReportResponseDto> getReportById(@PathVariable Long id) {
+        // Adjusted to use ReportResponseDto
+        ReportResponseDto reportResponseDto = reportService.getReportById(id);
+        return ResponseEntity.ok(reportResponseDto);
     }
 
-    // You can also expose a method to get all reports
     @GetMapping
-    public ResponseEntity<List<ReportDto>> getAllReports() {
-        List<ReportDto> reports = reportService.getAllReports();
-        if (reports.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        } else {
-            return ResponseEntity.ok(reports);
-        }
+    public ResponseEntity<List<ReportResponseDto>> getAllReports() {
+        List<ReportResponseDto> reports = reportService.getAllReports();
+        return ResponseEntity.ok(reports);
     }
 }

@@ -12,6 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/incidents")
 public class IncidentController {
+   //this is a method in charge of in coming request
     private final IncidentService incidentService;
 
     public IncidentController(IncidentService incidentService) {

@@ -22,8 +22,8 @@ public class IncidentDto {
     @NotNull(message = "User ID is required")
     private Long userId;
 
-    @NotBlank(message = "Location is required")
+    @NotNull(message = "Timestamp is required")
     private LocalDateTime timestamp;
 
-    private String media;
+    private String media; // Optional field
 }

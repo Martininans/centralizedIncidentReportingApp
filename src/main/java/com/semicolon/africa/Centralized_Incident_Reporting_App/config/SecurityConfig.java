@@ -1,63 +1,55 @@
 package com.semicolon.africa.Centralized_Incident_Reporting_App.config;
 
 import com.semicolon.africa.Centralized_Incident_Reporting_App.security.JwtAuthenticationFilter;
-import com.semicolon.africa.Centralized_Incident_Reporting_App.security.JwtTokenProvider;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import com.semicolon.africa.Centralized_Incident_Reporting_App.services.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.stereotype.Component;
-
-import java.io.IOException;
 
 @Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtTokenProvider jwtTokenProvider;
-    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomUserDetailsService userDetailsService;
 
-    public SecurityConfig(JwtTokenProvider jwtTokenProvider, CustomAuthenticationEntryPoint customAuthenticationEntryPoint) {
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, CustomUserDetailsService userDetailsService) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.userDetailsService = userDetailsService;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf.disable()) // Disable CSRF for simplicity
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/public/**").permitAll() // Allow public access
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN") // Only ADMIN can access
-                        .anyRequest().authenticated() // All other requests require authentication
+        http.csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/", "/register-user", "/api/auth/login", "/api/reports","/api/incidents").permitAll() // Public endpoints
+//                        .requestMatchers("/api/users/**").hasRole("ADMIN") // Restricted to ADMIN role
+  //
+                        //                      .anyRequest().authenticated() // All other endpoints require authentication
                 )
-                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class) // Add JWT filter before UsernamePasswordAuthenticationFilter
-                .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint(customAuthenticationEntryPoint) // Set custom authentication entry point
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)// Stateless session
                 );
-
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(); // Use BCrypt for password hashing
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 
-    // Custom AuthenticationEntryPoint to handle unauthorized access (401)
-    @Component
-    static class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
-
-        @Override
-        public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // Return 401 Unauthorized
-            response.getWriter().write("Access Denied: Unauthorized access.");
-        }
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }
